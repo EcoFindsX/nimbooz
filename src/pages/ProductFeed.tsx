@@ -5,75 +5,19 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Search, Filter, Heart } from 'lucide-react';
-
-// Mock data
-const mockProducts = [
-  {
-    id: '1',
-    title: 'Vintage Leather Jacket',
-    price: 45,
-    category: 'Fashion',
-    image: '/placeholder.svg',
-    location: 'New York',
-    likes: 12
-  },
-  {
-    id: '2',
-    title: 'Antique Wooden Chair',
-    price: 75,
-    category: 'Furniture',
-    image: '/placeholder.svg',
-    location: 'San Francisco',
-    likes: 8
-  },
-  {
-    id: '3',
-    title: 'Retro Gaming Console',
-    price: 120,
-    category: 'Electronics',
-    image: '/placeholder.svg',
-    location: 'Austin',
-    likes: 24
-  },
-  {
-    id: '4',
-    title: 'Plant Collection',
-    price: 30,
-    category: 'Garden',
-    image: '/placeholder.svg',
-    location: 'Portland',
-    likes: 15
-  },
-  {
-    id: '5',
-    title: 'Designer Handbag',
-    price: 90,
-    category: 'Fashion',
-    image: '/placeholder.svg',
-    location: 'Los Angeles',
-    likes: 18
-  },
-  {
-    id: '6',
-    title: 'Vintage Camera',
-    price: 150,
-    category: 'Electronics',
-    image: '/placeholder.svg',
-    location: 'Chicago',
-    likes: 22
-  }
-];
-
-const categories = ['All', 'Fashion', 'Electronics', 'Furniture', 'Garden', 'Books', 'Sports'];
+import { useProducts, useCategories } from '@/hooks/useProducts';
 
 const ProductFeed = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [products] = useState(mockProducts);
+  const { products, loading: loadingProducts } = useProducts();
+  const { categories: dbCategories, loading: loadingCategories } = useCategories();
+
+  const categories = ['All', ...(dbCategories.map(cat => cat.name) || [])];
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
+    const matchesCategory = selectedCategory === 'All' || product.categories?.name === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -118,44 +62,53 @@ const ProductFeed = () => {
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredProducts.map((product) => (
-          <Link key={product.id} to={`/product/${product.id}`}>
-            <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
-              <CardContent className="p-0">
-                <div className="aspect-square bg-muted rounded-t-lg relative overflow-hidden">
-                  <img
-                    src={product.image}
-                    alt={product.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                  >
-                    <Heart className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="secondary">{product.category}</Badge>
-                    <span className="text-sm text-muted-foreground">{product.location}</span>
+        {loadingProducts ? (
+          <div className="col-span-full text-center py-8">
+            <p className="text-muted-foreground">Loading products...</p>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="col-span-full text-center py-8">
+            <p className="text-muted-foreground">No products found.</p>
+          </div>
+        ) : (
+          filteredProducts.map((product) => (
+            <Link key={product.id} to={`/product/${product.id}`}>
+              <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
+                <CardContent className="p-0">
+                  <div className="aspect-square bg-muted rounded-t-lg relative overflow-hidden">
+                    <img
+                      src={product.image_url || '/placeholder.svg'}
+                      alt={product.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                    >
+                      <Heart className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                    {product.title}
-                  </h3>
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-primary">${product.price}</span>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Heart className="h-3 w-3 mr-1" />
-                      {product.likes}
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary">{product.categories?.name || 'Other'}</Badge>
+                      <span className="text-sm text-muted-foreground">{product.profiles?.location || 'Unknown'}</span>
+                    </div>
+                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                      {product.title}
+                    </h3>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold text-primary">${product.price}</span>
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <span>by {product.profiles?.name || 'Unknown'}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+                </CardContent>
+              </Card>
+            </Link>
+          ))
+        )}
       </div>
     </div>
   );
