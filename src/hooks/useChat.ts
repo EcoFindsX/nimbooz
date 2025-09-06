@@ -46,7 +46,7 @@ export const useConversations = () => {
 
     try {
       const { data, error } = await supabase
-        .rpc('get_user_conversations', { user_uuid: user.id });
+        .rpc('get_user_conversations', { user_uuid: user.id }) as { data: any[] | null, error: any };
 
       if (error) throw error;
 
@@ -84,7 +84,7 @@ export const useConversation = (conversationId: string) => {
         .rpc('get_conversation_details', { 
           conversation_uuid: conversationId,
           user_uuid: user.id 
-        });
+        }) as { data: any[] | null, error: any };
 
       if (convError) throw convError;
 
@@ -93,7 +93,7 @@ export const useConversation = (conversationId: string) => {
       }
 
       const { data: messagesData, error: messagesError } = await supabase
-        .rpc('get_conversation_messages', { conversation_uuid: conversationId });
+        .rpc('get_conversation_messages', { conversation_uuid: conversationId }) as { data: any[] | null, error: any };
 
       if (messagesError) throw messagesError;
 
@@ -118,12 +118,12 @@ export const useConversation = (conversationId: string) => {
           conversation_uuid: conversationId,
           sender_uuid: user.id,
           message_content: content
-        });
+        }) as { data: any[] | null, error: any };
 
       if (error) throw error;
 
-      if (data) {
-        setMessages(prev => [...prev, data]);
+      if (data && data.length > 0) {
+        setMessages(prev => [...prev, data[0]]);
       }
     } catch (error: any) {
       toast({
@@ -154,7 +154,7 @@ export const useCreateConversation = () => {
           product_uuid: productId,
           buyer_uuid: user.id,
           seller_uuid: sellerId
-        });
+        }) as { data: string | null, error: any };
 
       if (error) throw error;
 
