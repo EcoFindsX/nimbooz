@@ -4,12 +4,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
-type Product = Database['public']['Tables']['products']['Row'] & {
-  categories: { id: string; name: string; } | null;
-  profiles: { id: string; name: string; location: string | null; } | null;
-};
-
+type ProductRow = Database['public']['Tables']['products']['Row'];
 type ProductInsert = Database['public']['Tables']['products']['Insert'];
+
+interface Product extends ProductRow {
+  categories?: { id: string; name: string; } | null;
+  profiles?: { id: string; name: string; location: string | null; } | null;
+  product_images?: { id: string; image_url: string; is_cover: boolean; display_order: number; }[];
+}
 
 export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -24,13 +26,14 @@ export const useProducts = () => {
         .select(`
           *,
           categories (id, name),
-          profiles (id, name, location)
+          profiles (id, name, location),
+          product_images (id, image_url, is_cover, display_order)
         `)
         .eq('status', 'available')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setProducts(data || []);
+      setProducts((data || []) as unknown as Product[]);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast({
@@ -55,29 +58,37 @@ export const useCreateProduct = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const uploadImage = async (file: File): Promise<string | null> => {
-    if (!user) return null;
+  const uploadImages = async (files: File[]): Promise<string[]> => {
+    if (!user) return [];
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+    const uploadPromises = files.map(async (file) => {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}-${Math.random()}.${fileExt}`;
 
-    const { data, error } = await supabase.storage
-      .from('product-images')
-      .upload(fileName, file);
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, file);
 
-    if (error) {
-      console.error('Error uploading image:', error);
-      throw error;
-    }
+      if (error) {
+        console.error('Error uploading image:', error);
+        throw error;
+      }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(data.path);
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(data.path);
 
-    return publicUrl;
+      return publicUrl;
+    });
+
+    return Promise.all(uploadPromises);
   };
 
-  const createProduct = async (productData: Omit<ProductInsert, 'user_id'>, imageFile?: File) => {
+  const createProduct = async (
+    productData: Omit<ProductInsert, 'user_id'>, 
+    imageFiles: File[], 
+    coverImageIndex: number = 0
+  ) => {
     if (!user) {
       toast({
         title: "Error",
@@ -89,30 +100,43 @@ export const useCreateProduct = () => {
 
     setLoading(true);
     try {
-      let imageUrl = null;
-      
-      if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
-      }
-
-      const { data, error } = await supabase
+      // Create product first
+      const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
           ...productData,
           user_id: user.id,
-          image_url: imageUrl,
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (productError) throw productError;
+
+      // Upload images if provided
+      if (imageFiles.length > 0) {
+        const imageUrls = await uploadImages(imageFiles);
+        
+        // Insert product images
+        const productImages = imageUrls.map((url, index) => ({
+          product_id: product.id,
+          image_url: url,
+          is_cover: index === coverImageIndex,
+          display_order: index,
+        }));
+
+        const { error: imagesError } = await supabase
+          .from('product_images')
+          .insert(productImages);
+
+        if (imagesError) throw imagesError;
+      }
 
       toast({
         title: "Success!",
         description: "Product listed successfully",
       });
 
-      return data;
+      return product;
     } catch (error) {
       console.error('Error creating product:', error);
       toast({
@@ -170,13 +194,14 @@ export const useProductDetail = (id: string) => {
           .select(`
             *,
             categories (id, name),
-            profiles (id, name, location)
+            profiles (id, name, location),
+            product_images (id, image_url, is_cover, display_order)
           `)
           .eq('id', id)
           .maybeSingle();
 
         if (error) throw error;
-        setProduct(data);
+        setProduct(data as unknown as Product);
       } catch (error) {
         console.error('Error fetching product:', error);
         toast({
@@ -217,13 +242,14 @@ export const useMyListings = () => {
         .select(`
           *,
           categories (id, name),
-          profiles (id, name, location)
+          profiles (id, name, location),
+          product_images (id, image_url, is_cover, display_order)
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setProducts(data || []);
+      setProducts((data || []) as unknown as Product[]);
     } catch (error) {
       console.error('Error fetching my products:', error);
       toast({

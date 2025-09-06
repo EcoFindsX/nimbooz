@@ -15,7 +15,8 @@ import AddProduct from "./pages/AddProduct";
 import MyListings from "./pages/MyListings";
 import ProductDetail from "./pages/ProductDetail";
 import UserProfile from "./pages/UserProfile";
-import Cart from "./pages/Cart";
+import Chat from "./pages/Chat";
+import Chats from "./pages/Chats";
 import PreviousPurchases from "./pages/PreviousPurchases";
 import Search from "./pages/Search";
 import NotFound from "./pages/NotFound";
@@ -56,9 +57,14 @@ const App = () => (
                   <UserProfile />
                 </ProtectedRoute>
               } />
-              <Route path="/cart" element={
+              <Route path="/chats" element={
                 <ProtectedRoute>
-                  <Cart />
+                  <Chats />
+                </ProtectedRoute>
+              } />
+              <Route path="/chat/:conversationId" element={
+                <ProtectedRoute>
+                  <Chat />
                 </ProtectedRoute>
               } />
               <Route path="/purchases" element={

@@ -66,7 +66,11 @@ const MyListings = () => {
               <CardContent className="p-0">
                 <div className="aspect-square bg-muted rounded-t-lg relative overflow-hidden">
                   <img
-                    src={listing.image_url || '/placeholder.svg'}
+                    src={
+                      listing.product_images?.find(img => img.is_cover)?.image_url || 
+                      listing.product_images?.[0]?.image_url || 
+                      '/placeholder.svg'
+                    }
                     alt={listing.title}
                     className="w-full h-full object-cover"
                   />

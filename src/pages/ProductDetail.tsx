@@ -4,21 +4,26 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Heart, Share2, MessageCircle, ArrowLeft, ShoppingCart, MapPin } from 'lucide-react';
+import { Heart, Share2, MessageCircle, ArrowLeft, MapPin } from 'lucide-react';
 import { useProductDetail } from '@/hooks/useProducts';
-import { useCart } from '@/hooks/useCart';
+import { useConversations } from '@/hooks/useChat';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { product, loading } = useProductDetail(id || '');
-  const { addToCart } = useCart();
+  const { createConversation } = useConversations();
   const [selectedImage, setSelectedImage] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
 
-  const handleAddToCart = async () => {
-    if (product) {
-      await addToCart(product.id);
+  const handleStartChat = async () => {
+    if (product && product.user_id && user?.id !== product.user_id) {
+      const conversation = await createConversation(product.user_id, product.id);
+      if (conversation) {
+        navigate(`/chat/${conversation.id}`);
+      }
     }
   };
 
@@ -81,7 +86,9 @@ const ProductDetail = () => {
     );
   }
 
-  const images = product.image_url ? [product.image_url] : ['/placeholder.svg'];
+  const images = product.product_images && product.product_images.length > 0 
+    ? product.product_images.sort((a, b) => a.display_order - b.display_order).map(img => img.image_url)
+    : ['/placeholder.svg'];
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -169,24 +176,24 @@ const ProductDetail = () => {
                     Listed on {new Date(product.created_at).toLocaleDateString()}
                   </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleContactSeller}>
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Message
-                </Button>
+                {user?.id !== product.user_id && (
+                  <Button variant="outline" size="sm" onClick={handleStartChat}>
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Message
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            <Button onClick={handleAddToCart} className="w-full" size="lg">
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Add to Cart
-            </Button>
-            <Button variant="outline" className="w-full" size="lg" onClick={handleContactSeller}>
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Contact Seller
-            </Button>
+            {user?.id !== product.user_id && (
+              <Button onClick={handleStartChat} className="w-full" size="lg">
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Contact Seller
+              </Button>
+            )}
           </div>
         </div>
       </div>
