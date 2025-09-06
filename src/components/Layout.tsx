@@ -1,6 +1,8 @@
 import { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Home, Search, PlusCircle, User, ShoppingCart, History } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Search, PlusCircle, User, ShoppingCart, History, LogOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 import ecofindsLogo from '@/assets/ecofinds-logo.png';
 
 interface LayoutProps {
@@ -9,6 +11,8 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut, user } = useAuth();
 
   const navItems = [
     { icon: Home, label: 'Home', path: '/feed' },
@@ -18,7 +22,12 @@ const Layout = ({ children }: LayoutProps) => {
     { icon: User, label: 'Profile', path: '/profile' },
   ];
 
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/' || location.pathname === '/auth';
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/', { replace: true });
+  };
 
   if (isAuthPage) {
     return <div>{children}</div>;
@@ -51,9 +60,16 @@ const Layout = ({ children }: LayoutProps) => {
             ))}
           </nav>
 
-          <Link to="/my-listings" className="text-sm font-medium text-foreground hover:text-primary">
-            My Listings
-          </Link>
+          <div className="flex items-center space-x-4">
+            <Link to="/my-listings" className="text-sm font-medium text-foreground hover:text-primary">
+              My Listings
+            </Link>
+            {user && (
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 

@@ -1,9 +1,19 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Leaf, Recycle, ShoppingBag, Users } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import ecofindsLogo from '@/assets/ecofinds-logo.png';
 
 const Index = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/feed', { replace: true });
+    }
+  }, [user, navigate]);
   return (
     <div className="min-h-screen bg-gradient-to-br from-earth-sage via-earth-beige to-earth-sage">
       {/* Hero Section */}
@@ -22,10 +32,10 @@ const Index = () => {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" className="text-lg px-8 py-6">
-              <Link to="/signup">Get Started</Link>
+              <Link to="/auth?tab=signup">Get Started</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6">
-              <Link to="/login">Sign In</Link>
+              <Link to="/auth?tab=login">Sign In</Link>
             </Button>
           </div>
 
