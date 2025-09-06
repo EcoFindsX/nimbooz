@@ -77,11 +77,7 @@ const ProductFeed = () => {
                 <CardContent className="p-0">
                   <div className="aspect-square bg-muted rounded-t-lg relative overflow-hidden">
                     <img
-                      src={
-                        product.product_images?.find(img => img.is_cover)?.image_url || 
-                        product.product_images?.[0]?.image_url || 
-                        '/placeholder.svg'
-                      }
+                      src={product.image_url || '/placeholder.svg'}
                       alt={product.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />

@@ -38,7 +38,7 @@ const AddProduct = () => {
       description: formData.description,
       category_id: formData.category_id,
       price: parseFloat(formData.price),
-    }, imageFile ? [imageFile] : [], 0);
+    }, imageFile || undefined);
 
     if (product) {
       navigate('/feed');
