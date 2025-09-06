@@ -74,6 +74,65 @@ export type Database = {
         }
         Relationships: []
       }
+      conversations: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          product_id: string
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          product_id: string
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           buyer_id: string
@@ -128,6 +187,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      product_images: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          image_url: string
+          is_cover: boolean
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url: string
+          is_cover?: boolean
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          is_cover?: boolean
+          product_id?: string
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -218,7 +304,63 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_or_get_conversation: {
+        Args: { buyer_uuid: string; product_uuid: string; seller_uuid: string }
+        Returns: string
+      }
+      get_conversation_details: {
+        Args: { conversation_uuid: string; user_uuid: string }
+        Returns: {
+          buyer_id: string
+          created_at: string
+          id: string
+          other_user: Json
+          product: Json
+          product_id: string
+          seller_id: string
+          updated_at: string
+        }[]
+      }
+      get_conversation_messages: {
+        Args: { conversation_uuid: string }
+        Returns: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender: Json
+          sender_id: string
+        }[]
+      }
+      get_user_conversations: {
+        Args: { user_uuid: string }
+        Returns: {
+          buyer_id: string
+          created_at: string
+          id: string
+          last_message: Json
+          other_user: Json
+          product: Json
+          product_id: string
+          seller_id: string
+          updated_at: string
+        }[]
+      }
+      send_message: {
+        Args: {
+          conversation_uuid: string
+          message_content: string
+          sender_uuid: string
+        }
+        Returns: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender: Json
+          sender_id: string
+        }[]
+      }
     }
     Enums: {
       order_status: "pending" | "completed" | "cancelled"
