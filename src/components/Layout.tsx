@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Search, PlusCircle, User, MessageCircle, LogOut } from 'lucide-react';
+import { Home, Search, PlusCircle, User, MessageCircle, LogOut, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 const ecofindsLogo = '/lovable-uploads/009b3627-c86c-4bc3-9c4d-e1e67feb1fcd.png';
@@ -18,6 +18,7 @@ const Layout = ({ children }: LayoutProps) => {
     { icon: Home, label: 'Home', path: '/feed' },
     { icon: Search, label: 'Search', path: '/search' },
     { icon: PlusCircle, label: 'Sell', path: '/add-product' },
+    { icon: ShoppingCart, label: 'Cart', path: '/cart' },
     { icon: MessageCircle, label: 'Messages', path: '/chats' },
     { icon: User, label: 'Profile', path: '/profile' },
   ];
