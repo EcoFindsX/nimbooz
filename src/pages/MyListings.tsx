@@ -1,54 +1,16 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Eye, Plus } from 'lucide-react';
-
-// Mock data for user's listings
-const mockListings = [
-  {
-    id: '1',
-    title: 'Vintage Leather Jacket',
-    price: 45,
-    category: 'Fashion',
-    image: '/placeholder.svg',
-    status: 'active',
-    views: 24,
-    likes: 12,
-    createdAt: '2024-01-15'
-  },
-  {
-    id: '2',
-    title: 'Antique Wooden Chair',
-    price: 75,
-    category: 'Furniture',
-    image: '/placeholder.svg',
-    status: 'sold',
-    views: 18,
-    likes: 8,
-    createdAt: '2024-01-10'
-  },
-  {
-    id: '3',
-    title: 'Plant Collection',
-    price: 30,
-    category: 'Garden',
-    image: '/placeholder.svg',
-    status: 'active',
-    views: 15,
-    likes: 7,
-    createdAt: '2024-01-20'
-  }
-];
+import { useMyListings } from '@/hooks/useProducts';
 
 const MyListings = () => {
-  const [listings] = useState(mockListings);
+  const { products: listings, loading, deleteProduct } = useMyListings();
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this listing?')) {
-      // TODO: Implement delete functionality
-      console.log('Deleting listing:', id);
+      await deleteProduct(id);
     }
   };
 
@@ -82,65 +44,82 @@ const MyListings = () => {
       </div>
 
       {/* Listings Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {listings.map((listing) => (
-          <Card key={listing.id} className="group">
-            <CardContent className="p-0">
-              <div className="aspect-square bg-muted rounded-t-lg relative overflow-hidden">
-                <img
-                  src={listing.image}
-                  alt={listing.title}
-                  className="w-full h-full object-cover"
-                />
-                <Badge className={`absolute top-2 left-2 ${getStatusColor(listing.status)}`}>
-                  {listing.status.charAt(0).toUpperCase() + listing.status.slice(1)}
-                </Badge>
-              </div>
-              <div className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary">{listing.category}</Badge>
-                  <span className="text-2xl font-bold text-primary">${listing.price}</span>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-0">
+                <div className="aspect-square bg-muted rounded-t-lg"></div>
+                <div className="p-4 space-y-3">
+                  <div className="h-4 bg-muted rounded"></div>
+                  <div className="h-6 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
                 </div>
-                <h3 className="font-semibold text-foreground">{listing.title}</h3>
-                
-                {/* Stats */}
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <div className="flex items-center space-x-4">
-                    <span className="flex items-center">
-                      <Eye className="h-3 w-3 mr-1" />
-                      {listing.views}
-                    </span>
-                    <span>❤️ {listing.likes}</span>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {listings.map((listing) => (
+            <Card key={listing.id} className="group">
+              <CardContent className="p-0">
+                <div className="aspect-square bg-muted rounded-t-lg relative overflow-hidden">
+                  <img
+                    src={listing.image_url || '/placeholder.svg'}
+                    alt={listing.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <Badge className={`absolute top-2 left-2 ${getStatusColor(listing.status)}`}>
+                    {listing.status.charAt(0).toUpperCase() + listing.status.slice(1)}
+                  </Badge>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="secondary">{listing.categories?.name || 'Uncategorized'}</Badge>
+                    <span className="text-2xl font-bold text-primary">${listing.price}</span>
                   </div>
-                  <span>{new Date(listing.createdAt).toLocaleDateString()}</span>
-                </div>
+                  <h3 className="font-semibold text-foreground">{listing.title}</h3>
+                  
+                  {/* Stats */}
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-4">
+                      <span className="flex items-center">
+                        <Eye className="h-3 w-3 mr-1" />
+                        0
+                      </span>
+                      <span>❤️ 0</span>
+                    </div>
+                    <span>{new Date(listing.created_at).toLocaleDateString()}</span>
+                  </div>
 
-                {/* Actions */}
-                <div className="flex space-x-2 pt-2">
-                  <Button asChild variant="outline" size="sm" className="flex-1">
-                    <Link to={`/product/${listing.id}`}>
-                      <Eye className="h-3 w-3 mr-1" />
-                      View
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <Edit className="h-3 w-3 mr-1" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(listing.id)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                  {/* Actions */}
+                  <div className="flex space-x-2 pt-2">
+                    <Button asChild variant="outline" size="sm" className="flex-1">
+                      <Link to={`/product/${listing.id}`}>
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1">
+                      <Edit className="h-3 w-3 mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(listing.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {listings.length === 0 && (
         <div className="text-center py-12">

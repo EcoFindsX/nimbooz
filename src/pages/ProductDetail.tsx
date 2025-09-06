@@ -5,40 +5,21 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, Share2, MessageCircle, ArrowLeft, ShoppingCart, MapPin } from 'lucide-react';
-
-// Mock product data
-const mockProduct = {
-  id: '1',
-  title: 'Vintage Leather Jacket',
-  price: 45,
-  category: 'Fashion',
-  condition: 'Good',
-  description: 'Beautiful vintage leather jacket in excellent condition. Perfect for anyone looking to add a classic piece to their wardrobe. Has been well-maintained and shows minimal signs of wear.',
-  images: ['/placeholder.svg', '/placeholder.svg', '/placeholder.svg'],
-  location: 'New York, NY',
-  seller: {
-    name: 'Sarah Johnson',
-    avatar: '/placeholder.svg',
-    rating: 4.8,
-    totalSales: 23,
-    joinedDate: '2023-06-15'
-  },
-  createdAt: '2024-01-15',
-  views: 24,
-  likes: 12,
-  isLiked: false
-};
+import { useProductDetail } from '@/hooks/useProducts';
+import { useCart } from '@/hooks/useCart';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [product] = useState(mockProduct);
+  const { product, loading } = useProductDetail(id || '');
+  const { addToCart } = useCart();
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isLiked, setIsLiked] = useState(product.isLiked);
+  const [isLiked, setIsLiked] = useState(false);
 
-  const handleAddToCart = () => {
-    // TODO: Implement add to cart
-    console.log('Adding to cart:', product.id);
+  const handleAddToCart = async () => {
+    if (product) {
+      await addToCart(product.id);
+    }
   };
 
   const handleContactSeller = () => {
@@ -52,13 +33,55 @@ const ProductDetail = () => {
   };
 
   const handleShare = () => {
-    // TODO: Implement share functionality
-    navigator.share?.({
-      title: product.title,
-      text: product.description,
-      url: window.location.href,
-    });
+    if (product) {
+      navigator.share?.({
+        title: product.title,
+        text: product.description || '',
+        url: window.location.href,
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-20 mb-4"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <div className="aspect-square bg-muted rounded-lg"></div>
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="aspect-square bg-muted rounded-lg"></div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="h-8 bg-muted rounded w-3/4"></div>
+                <div className="h-12 bg-muted rounded w-1/2"></div>
+                <div className="h-20 bg-muted rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="max-w-6xl mx-auto text-center py-12">
+        <h2 className="text-2xl font-bold text-foreground">Product not found</h2>
+        <p className="text-muted-foreground mt-2">The product you're looking for doesn't exist.</p>
+        <Button onClick={() => navigate('/feed')} className="mt-4">
+          Browse Products
+        </Button>
+      </div>
+    );
+  }
+
+  const images = product.image_url ? [product.image_url] : ['/placeholder.svg'];
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -73,13 +96,13 @@ const ProductDetail = () => {
         <div className="space-y-4">
           <div className="aspect-square bg-muted rounded-lg overflow-hidden">
             <img
-              src={product.images[selectedImage]}
+              src={images[selectedImage]}
               alt={product.title}
               className="w-full h-full object-cover"
             />
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {product.images.map((image, index) => (
+            {images.map((image, index) => (
               <button
                 key={index}
                 onClick={() => setSelectedImage(index)}
@@ -99,13 +122,13 @@ const ProductDetail = () => {
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
-                  <Badge variant="secondary">{product.category}</Badge>
-                  <Badge variant="outline">{product.condition}</Badge>
+                  <Badge variant="secondary">{product.categories?.name || 'Uncategorized'}</Badge>
+                  <Badge variant="outline">{product.status}</Badge>
                 </div>
                 <h1 className="text-3xl font-bold text-foreground">{product.title}</h1>
                 <div className="flex items-center text-muted-foreground">
                   <MapPin className="h-4 w-4 mr-1" />
-                  {product.location}
+                  {product.profiles?.location || 'Location not specified'}
                 </div>
               </div>
               <div className="flex space-x-2">
@@ -124,7 +147,9 @@ const ProductDetail = () => {
           {/* Description */}
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-foreground">Description</h3>
-            <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+            <p className="text-muted-foreground leading-relaxed">
+              {product.description || 'No description available.'}
+            </p>
           </div>
 
           {/* Seller Info */}
@@ -132,16 +157,16 @@ const ProductDetail = () => {
             <CardContent className="p-4">
               <div className="flex items-center space-x-4">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={product.seller.avatar} />
-                  <AvatarFallback>{product.seller.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                  <AvatarFallback>
+                    {product.profiles?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <div className="font-semibold text-foreground">{product.seller.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    ⭐ {product.seller.rating} • {product.seller.totalSales} sales
+                  <div className="font-semibold text-foreground">
+                    {product.profiles?.name || 'Unknown Seller'}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    Member since {new Date(product.seller.joinedDate).toLocaleDateString()}
+                  <div className="text-sm text-muted-foreground">
+                    Listed on {new Date(product.created_at).toLocaleDateString()}
                   </div>
                 </div>
                 <Button variant="outline" size="sm" onClick={handleContactSeller}>
@@ -162,13 +187,6 @@ const ProductDetail = () => {
               <MessageCircle className="h-4 w-4 mr-2" />
               Contact Seller
             </Button>
-          </div>
-
-          {/* Stats */}
-          <div className="text-sm text-muted-foreground space-y-1">
-            <div>👁️ {product.views} views</div>
-            <div>❤️ {product.likes} likes</div>
-            <div>📅 Listed on {new Date(product.createdAt).toLocaleDateString()}</div>
           </div>
         </div>
       </div>

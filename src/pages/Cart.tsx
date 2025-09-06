@@ -1,67 +1,40 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
-
-// Mock cart data
-const mockCartItems = [
-  {
-    id: '1',
-    productId: '1',
-    title: 'Vintage Leather Jacket',
-    price: 45,
-    category: 'Fashion',
-    image: '/placeholder.svg',
-    seller: 'Sarah Johnson',
-    quantity: 1
-  },
-  {
-    id: '2',
-    productId: '3',
-    title: 'Plant Collection',
-    price: 30,
-    category: 'Garden',
-    image: '/placeholder.svg',
-    seller: 'Mike Green',
-    quantity: 2
-  },
-  {
-    id: '3',
-    productId: '6',
-    title: 'Vintage Camera',
-    price: 150,
-    category: 'Electronics',
-    image: '/placeholder.svg',
-    seller: 'Alex Photo',
-    quantity: 1
-  }
-];
+import { useCart } from '@/hooks/useCart';
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState(mockCartItems);
+  const { cartItems, loading, updateQuantity, removeFromCart } = useCart();
 
-  const updateQuantity = (id: string, newQuantity: number) => {
-    if (newQuantity === 0) {
-      removeItem(id);
-      return;
+  const subtotal = cartItems.reduce((sum, item) => {
+    if (item.products) {
+      return sum + (item.products.price * item.quantity);
     }
-    setCartItems(prev => 
-      prev.map(item => 
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
-    );
-  };
-
-  const removeItem = (id: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== id));
-  };
-
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    return sum;
+  }, 0);
   const shipping = cartItems.length > 0 ? 5.99 : 0;
   const total = subtotal + shipping;
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-1/4 mb-4"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="h-32 bg-muted rounded"></div>
+              ))}
+            </div>
+            <div className="h-64 bg-muted rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (cartItems.length === 0) {
     return (
@@ -90,74 +63,84 @@ const Cart = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Cart Items */}
         <div className="lg:col-span-2 space-y-4">
-          {cartItems.map((item) => (
-            <Card key={item.id}>
-              <CardContent className="p-4">
-                <div className="flex space-x-4">
-                  <Link to={`/product/${item.productId}`} className="shrink-0">
-                    <div className="w-20 h-20 bg-muted rounded-lg overflow-hidden">
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform"
-                      />
-                    </div>
-                  </Link>
-                  
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <Link 
-                          to={`/product/${item.productId}`}
-                          className="font-semibold text-foreground hover:text-primary transition-colors"
-                        >
-                          {item.title}
-                        </Link>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <Badge variant="secondary">{item.category}</Badge>
-                          <span className="text-sm text-muted-foreground">by {item.seller}</span>
-                        </div>
+          {cartItems.map((item) => {
+            if (!item.products) return null;
+            
+            return (
+              <Card key={item.id}>
+                <CardContent className="p-4">
+                  <div className="flex space-x-4">
+                    <Link to={`/product/${item.product_id}`} className="shrink-0">
+                      <div className="w-20 h-20 bg-muted rounded-lg overflow-hidden">
+                        <img
+                          src={item.products.image_url || '/placeholder.svg'}
+                          alt={item.products.title}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform"
+                        />
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(item.id)}
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    </Link>
                     
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <Link 
+                            to={`/product/${item.product_id}`}
+                            className="font-semibold text-foreground hover:text-primary transition-colors"
+                          >
+                            {item.products.title}
+                          </Link>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <Badge variant="secondary">
+                              {item.products.categories?.name || 'Uncategorized'}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">
+                              by {item.products.profiles?.name || 'Unknown Seller'}
+                            </span>
+                          </div>
+                        </div>
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => removeFromCart(item.id)}
+                          className="text-muted-foreground hover:text-destructive"
                         >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="w-8 text-center font-medium">{item.quantity}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        >
-                          <Plus className="h-3 w-3" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                      <div className="text-right">
-                        <div className="font-semibold text-foreground">${(item.price * item.quantity).toFixed(2)}</div>
-                        <div className="text-sm text-muted-foreground">${item.price} each</div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="w-8 text-center font-medium">{item.quantity}</span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-foreground">
+                            ${(item.products.price * item.quantity).toFixed(2)}
+                          </div>
+                          <div className="text-sm text-muted-foreground">${item.products.price} each</div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Order Summary */}

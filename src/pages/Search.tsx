@@ -7,93 +7,31 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Search as SearchIcon, Filter, Heart, SlidersHorizontal } from 'lucide-react';
+import { useProducts, useCategories } from '@/hooks/useProducts';
 
-// Mock data (same as ProductFeed for consistency)
-const mockProducts = [
-  {
-    id: '1',
-    title: 'Vintage Leather Jacket',
-    price: 45,
-    category: 'Fashion',
-    image: '/placeholder.svg',
-    location: 'New York',
-    condition: 'Good',
-    likes: 12
-  },
-  {
-    id: '2',
-    title: 'Antique Wooden Chair',
-    price: 75,
-    category: 'Furniture',
-    image: '/placeholder.svg',
-    location: 'San Francisco',
-    condition: 'Excellent',
-    likes: 8
-  },
-  {
-    id: '3',
-    title: 'Retro Gaming Console',
-    price: 120,
-    category: 'Electronics',
-    image: '/placeholder.svg',
-    location: 'Austin',
-    condition: 'Good',
-    likes: 24
-  },
-  {
-    id: '4',
-    title: 'Plant Collection',
-    price: 30,
-    category: 'Garden',
-    image: '/placeholder.svg',
-    location: 'Portland',
-    condition: 'Like New',
-    likes: 15
-  },
-  {
-    id: '5',
-    title: 'Designer Handbag',
-    price: 90,
-    category: 'Fashion',
-    image: '/placeholder.svg',
-    location: 'Los Angeles',
-    condition: 'Excellent',
-    likes: 18
-  },
-  {
-    id: '6',
-    title: 'Vintage Camera',
-    price: 150,
-    category: 'Electronics',
-    image: '/placeholder.svg',
-    location: 'Chicago',
-    condition: 'Good',
-    likes: 22
-  }
-];
-
-const categories = ['All', 'Fashion', 'Electronics', 'Furniture', 'Garden', 'Books', 'Sports'];
-const conditions = ['All', 'Like New', 'Excellent', 'Good', 'Fair'];
+const conditions = ['All', 'available', 'sold'];
 const sortOptions = [
   { value: 'newest', label: 'Newest First' },
   { value: 'price-low', label: 'Price: Low to High' },
   { value: 'price-high', label: 'Price: High to Low' },
-  { value: 'popular', label: 'Most Popular' }
 ];
 
 const Search = () => {
+  const { products, loading } = useProducts();
+  const { categories: dbCategories } = useCategories();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedCondition, setSelectedCondition] = useState('All');
-  const [priceRange, setPriceRange] = useState([0, 200]);
+  const [priceRange, setPriceRange] = useState([0, 500]);
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
-  const [products] = useState(mockProducts);
+
+  const categories = ['All', ...dbCategories.map(cat => cat.name)];
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
-    const matchesCondition = selectedCondition === 'All' || product.condition === selectedCondition;
+    const matchesCategory = selectedCategory === 'All' || product.categories?.name === selectedCategory;
+    const matchesCondition = selectedCondition === 'All' || product.status === selectedCondition;
     const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
     return matchesSearch && matchesCategory && matchesCondition && matchesPrice;
   });
@@ -104,8 +42,6 @@ const Search = () => {
         return a.price - b.price;
       case 'price-high':
         return b.price - a.price;
-      case 'popular':
-        return b.likes - a.likes;
       default:
         return 0; // newest first (default order)
     }
@@ -196,7 +132,7 @@ const Search = () => {
                 <Slider
                   value={priceRange}
                   onValueChange={setPriceRange}
-                  max={200}
+                  max={500}
                   min={0}
                   step={5}
                   className="w-full"
@@ -215,47 +151,62 @@ const Search = () => {
       </div>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sortedProducts.map((product) => (
-          <Link key={product.id} to={`/product/${product.id}`}>
-            <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i} className="animate-pulse">
               <CardContent className="p-0">
-                <div className="aspect-square bg-muted rounded-t-lg relative overflow-hidden">
-                  <img
-                    src={product.image}
-                    alt={product.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                  >
-                    <Heart className="h-4 w-4" />
-                  </Button>
-                </div>
+                <div className="aspect-square bg-muted rounded-t-lg"></div>
                 <div className="p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="secondary">{product.category}</Badge>
-                    <Badge variant="outline">{product.condition}</Badge>
-                  </div>
-                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                    {product.title}
-                  </h3>
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-primary">${product.price}</span>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Heart className="h-3 w-3 mr-1" />
-                      {product.likes}
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{product.location}</p>
+                  <div className="h-4 bg-muted rounded"></div>
+                  <div className="h-6 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
                 </div>
               </CardContent>
             </Card>
-          </Link>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {sortedProducts.map((product) => (
+            <Link key={product.id} to={`/product/${product.id}`}>
+              <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
+                <CardContent className="p-0">
+                  <div className="aspect-square bg-muted rounded-t-lg relative overflow-hidden">
+                    <img
+                      src={product.image_url || '/placeholder.svg'}
+                      alt={product.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                    >
+                      <Heart className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary">{product.categories?.name || 'Uncategorized'}</Badge>
+                      <Badge variant="outline">{product.status}</Badge>
+                    </div>
+                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                      {product.title}
+                    </h3>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold text-primary">${product.price}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {product.profiles?.location || 'Location not specified'}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
 
       {sortedProducts.length === 0 && (
         <div className="text-center py-12">
@@ -269,7 +220,7 @@ const Search = () => {
               setSearchTerm('');
               setSelectedCategory('All');
               setSelectedCondition('All');
-              setPriceRange([0, 200]);
+              setPriceRange([0, 500]);
             }}>
               Clear All Filters
             </Button>

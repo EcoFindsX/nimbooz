@@ -155,3 +155,117 @@ export const useCategories = () => {
 
   return { categories, loading };
 };
+
+export const useProductDetail = (id: string) => {
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('products')
+          .select(`
+            *,
+            categories (id, name),
+            profiles (id, name, location)
+          `)
+          .eq('id', id)
+          .maybeSingle();
+
+        if (error) throw error;
+        setProduct(data);
+      } catch (error) {
+        console.error('Error fetching product:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load product details",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchProduct();
+    }
+  }, [id, toast]);
+
+  return { product, loading };
+};
+
+export const useMyListings = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const fetchMyProducts = async () => {
+    if (!user) {
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          categories (id, name),
+          profiles (id, name, location)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching my products:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load your listings",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Product deleted successfully",
+      });
+
+      fetchMyProducts();
+      return true;
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete product",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    fetchMyProducts();
+  }, [user]);
+
+  return { products, loading, deleteProduct, refetch: fetchMyProducts };
+};

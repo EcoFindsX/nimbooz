@@ -6,76 +6,19 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Download, Star, MessageCircle } from 'lucide-react';
-
-// Mock purchase history data
-const mockPurchases = [
-  {
-    id: '1',
-    orderId: 'ECO-2024-001',
-    productId: '2',
-    title: 'Antique Wooden Chair',
-    price: 75,
-    category: 'Furniture',
-    image: '/placeholder.svg',
-    seller: 'Mike Vintage',
-    purchaseDate: '2024-01-20',
-    status: 'delivered',
-    rating: 5,
-    hasReview: true
-  },
-  {
-    id: '2',
-    orderId: 'ECO-2024-002',
-    productId: '4',
-    title: 'Designer Handbag',
-    price: 90,
-    category: 'Fashion',
-    image: '/placeholder.svg',
-    seller: 'Emma Style',
-    purchaseDate: '2024-01-15',
-    status: 'delivered',
-    rating: 4,
-    hasReview: true
-  },
-  {
-    id: '3',
-    orderId: 'ECO-2024-003',
-    productId: '5',
-    title: 'Retro Gaming Console',
-    price: 120,
-    category: 'Electronics',
-    image: '/placeholder.svg',
-    seller: 'GameRetro',
-    purchaseDate: '2024-01-10',
-    status: 'in-transit',
-    rating: null,
-    hasReview: false
-  },
-  {
-    id: '4',
-    orderId: 'ECO-2023-087',
-    productId: '7',
-    title: 'Vintage Bicycle',
-    price: 200,
-    category: 'Sports',
-    image: '/placeholder.svg',
-    seller: 'CycleVintage',
-    purchaseDate: '2023-12-28',
-    status: 'delivered',
-    rating: 5,
-    hasReview: true
-  }
-];
+import { useOrders } from '@/hooks/useOrders';
 
 const PreviousPurchases = () => {
-  const [purchases] = useState(mockPurchases);
+  const { orders, loading } = useOrders();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const filteredPurchases = purchases.filter(purchase => {
-    const matchesSearch = purchase.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         purchase.seller.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || purchase.status === statusFilter;
+  const filteredPurchases = orders.filter(order => {
+    const title = order.products?.title || '';
+    const seller = order.seller_profile?.name || '';
+    const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         seller.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -83,10 +26,10 @@ const PreviousPurchases = () => {
     switch (status) {
       case 'delivered':
         return 'bg-green-100 text-green-800';
-      case 'in-transit':
-        return 'bg-blue-100 text-blue-800';
-      case 'processing':
+      case 'pending':
         return 'bg-yellow-100 text-yellow-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
       case 'cancelled':
         return 'bg-red-100 text-red-800';
       default:
@@ -95,12 +38,10 @@ const PreviousPurchases = () => {
   };
 
   const downloadReceipt = (orderId: string) => {
-    // TODO: Implement receipt download
     console.log('Downloading receipt for order:', orderId);
   };
 
   const contactSeller = (seller: string) => {
-    // TODO: Implement messaging
     console.log('Contacting seller:', seller);
   };
 
@@ -129,97 +70,102 @@ const PreviousPurchases = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Orders</SelectItem>
-            <SelectItem value="delivered">Delivered</SelectItem>
-            <SelectItem value="in-transit">In Transit</SelectItem>
-            <SelectItem value="processing">Processing</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Purchase List */}
-      <div className="space-y-4">
-        {filteredPurchases.map((purchase) => (
-          <Card key={purchase.id}>
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6">
-                {/* Product Image */}
-                <Link to={`/product/${purchase.productId}`} className="shrink-0">
-                  <div className="w-24 h-24 bg-muted rounded-lg overflow-hidden">
-                    <img
-                      src={purchase.image}
-                      alt={purchase.title}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform"
-                    />
-                  </div>
-                </Link>
-
-                {/* Purchase Details */}
-                <div className="flex-1 space-y-3">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between space-y-2 md:space-y-0">
-                    <div>
-                      <Link 
-                        to={`/product/${purchase.productId}`}
-                        className="font-semibold text-lg text-foreground hover:text-primary transition-colors"
-                      >
-                        {purchase.title}
-                      </Link>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <Badge variant="secondary">{purchase.category}</Badge>
-                        <Badge className={getStatusColor(purchase.status)}>
-                          {purchase.status.replace('-', ' ').charAt(0).toUpperCase() + purchase.status.slice(1)}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Sold by {purchase.seller} • Order #{purchase.orderId}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-primary">${purchase.price}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {new Date(purchase.purchaseDate).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Rating (if delivered and reviewed) */}
-                  {purchase.status === 'delivered' && purchase.hasReview && (
-                    <div className="flex items-center space-x-1">
-                      <span className="text-sm text-muted-foreground">Your rating:</span>
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-4 w-4 ${
-                            i < (purchase.rating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" onClick={() => downloadReceipt(purchase.orderId)}>
-                      <Download className="h-3 w-3 mr-1" />
-                      Receipt
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => contactSeller(purchase.seller)}>
-                      <MessageCircle className="h-3 w-3 mr-1" />
-                      Message Seller
-                    </Button>
-                    {purchase.status === 'delivered' && !purchase.hasReview && (
-                      <Button variant="outline" size="sm">
-                        <Star className="h-3 w-3 mr-1" />
-                        Leave Review
-                      </Button>
-                    )}
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-6">
+                <div className="flex space-x-6">
+                  <div className="w-24 h-24 bg-muted rounded-lg"></div>
+                  <div className="flex-1 space-y-3">
+                    <div className="h-6 bg-muted rounded w-3/4"></div>
+                    <div className="h-4 bg-muted rounded w-1/2"></div>
+                    <div className="h-4 bg-muted rounded w-1/4"></div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredPurchases.map((purchase) => (
+            <Card key={purchase.id}>
+              <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6">
+                  {/* Product Image */}
+                  <Link to={`/product/${purchase.product_id}`} className="shrink-0">
+                    <div className="w-24 h-24 bg-muted rounded-lg overflow-hidden">
+                      <img
+                        src={purchase.products?.image_url || '/placeholder.svg'}
+                        alt={purchase.products?.title || 'Product'}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform"
+                      />
+                    </div>
+                  </Link>
+
+                  {/* Purchase Details */}
+                  <div className="flex-1 space-y-3">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between space-y-2 md:space-y-0">
+                      <div>
+                        <Link 
+                          to={`/product/${purchase.product_id}`}
+                          className="font-semibold text-lg text-foreground hover:text-primary transition-colors"
+                        >
+                          {purchase.products?.title || 'Unknown Product'}
+                        </Link>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <Badge variant="secondary">
+                            {purchase.products?.categories?.name || 'Uncategorized'}
+                          </Badge>
+                          <Badge className={getStatusColor(purchase.status)}>
+                            {purchase.status.charAt(0).toUpperCase() + purchase.status.slice(1)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Sold by {purchase.seller_profile?.name || 'Unknown Seller'} • Order #{purchase.id}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-primary">${purchase.total_price}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {new Date(purchase.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" onClick={() => downloadReceipt(purchase.id)}>
+                        <Download className="h-3 w-3 mr-1" />
+                        Receipt
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => contactSeller(purchase.seller_profile?.name || '')}>
+                        <MessageCircle className="h-3 w-3 mr-1" />
+                        Message Seller
+                      </Button>
+                      {purchase.status === 'completed' && (
+                        <Button variant="outline" size="sm">
+                          <Star className="h-3 w-3 mr-1" />
+                          Leave Review
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {filteredPurchases.length === 0 && (
         <div className="text-center py-12">
