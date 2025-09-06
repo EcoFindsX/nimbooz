@@ -4,14 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, Heart } from 'lucide-react';
+import { Search, Filter, Heart, ShoppingCart } from 'lucide-react';
 import { useProducts, useCategories } from '@/hooks/useProducts';
+import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ProductFeed = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const { products, loading: loadingProducts } = useProducts();
   const { categories: dbCategories, loading: loadingCategories } = useCategories();
+  const { addToCart } = useCart();
+  const { user } = useAuth();
 
   const categories = ['All', ...(dbCategories.map(cat => cat.name) || [])];
 
@@ -20,6 +24,12 @@ const ProductFeed = () => {
     const matchesCategory = selectedCategory === 'All' || product.categories?.name === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const handleAddToCart = async (e: React.MouseEvent, productId: string) => {
+    e.preventDefault(); // Prevent navigation to product detail
+    e.stopPropagation();
+    await addToCart(productId);
+  };
 
   return (
     <div className="space-y-6">
@@ -103,6 +113,16 @@ const ProductFeed = () => {
                         <span>by {product.profiles?.name || 'Unknown'}</span>
                       </div>
                     </div>
+                    {user && product.user_id !== user.id && (
+                      <Button
+                        onClick={(e) => handleAddToCart(e, product.id)}
+                        className="w-full mt-2"
+                        size="sm"
+                      >
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        Add to Cart
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

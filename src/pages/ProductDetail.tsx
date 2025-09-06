@@ -8,6 +8,7 @@ import { Heart, Share2, MessageCircle, ArrowLeft, ShoppingCart, MapPin } from 'l
 import { useProductDetail } from '@/hooks/useProducts';
 import { useCreateConversation } from '@/hooks/useChat';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/hooks/useCart';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -15,6 +16,7 @@ const ProductDetail = () => {
   const { product, loading } = useProductDetail(id || '');
   const { createConversation } = useCreateConversation();
   const { user } = useAuth();
+  const { addToCart } = useCart();
   const [selectedImage, setSelectedImage] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
 
@@ -39,6 +41,12 @@ const ProductDetail = () => {
         text: product.description || '',
         url: window.location.href,
       });
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (product) {
+      await addToCart(product.id);
     }
   };
 
@@ -180,7 +188,11 @@ const ProductDetail = () => {
           {/* Action Buttons */}
           {user && product && user.id !== product.user_id && (
             <div className="space-y-3">
-              <Button onClick={handleContactSeller} className="w-full" size="lg">
+              <Button onClick={handleAddToCart} className="w-full" size="lg">
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Add to Cart
+              </Button>
+              <Button onClick={handleContactSeller} className="w-full" size="lg" variant="outline">
                 <MessageCircle className="h-4 w-4 mr-2" />
                 Contact Seller
               </Button>
