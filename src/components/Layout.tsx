@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Search, PlusCircle, User, MessageCircle, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import ecofindsLogo from '@/assets/ecofinds-logo.png';
+const ecofindsLogo = '/lovable-uploads/009b3627-c86c-4bc3-9c4d-e1e67feb1fcd.png';
 
 interface LayoutProps {
   children: ReactNode;

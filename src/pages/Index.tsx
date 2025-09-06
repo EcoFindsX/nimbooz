@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Leaf, Recycle, ShoppingBag, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import ecofindsLogo from '@/assets/ecofinds-logo.png';
+const ecofindsLogo = '/lovable-uploads/009b3627-c86c-4bc3-9c4d-e1e67feb1fcd.png';
 
 const Index = () => {
   const { user } = useAuth();

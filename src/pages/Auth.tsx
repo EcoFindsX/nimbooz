@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import ecofindsLogo from "@/assets/ecofinds-logo.png";
+const ecofindsLogo = '/lovable-uploads/009b3627-c86c-4bc3-9c4d-e1e67feb1fcd.png';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
