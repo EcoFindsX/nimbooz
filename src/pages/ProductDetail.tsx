@@ -6,25 +6,25 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, Share2, MessageCircle, ArrowLeft, ShoppingCart, MapPin } from 'lucide-react';
 import { useProductDetail } from '@/hooks/useProducts';
-import { useCart } from '@/hooks/useCart';
+import { useCreateConversation } from '@/hooks/useChat';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { product, loading } = useProductDetail(id || '');
-  const { addToCart } = useCart();
+  const { createConversation } = useCreateConversation();
+  const { user } = useAuth();
   const [selectedImage, setSelectedImage] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
 
-  const handleAddToCart = async () => {
-    if (product) {
-      await addToCart(product.id);
+  const handleContactSeller = async () => {
+    if (product && user && product.user_id !== user.id) {
+      const conversationId = await createConversation(product.id, product.user_id);
+      if (conversationId) {
+        navigate(`/chat/${conversationId}`);
+      }
     }
-  };
-
-  const handleContactSeller = () => {
-    // TODO: Implement messaging
-    console.log('Contacting seller');
   };
 
   const handleLike = () => {
@@ -178,16 +178,14 @@ const ProductDetail = () => {
           </Card>
 
           {/* Action Buttons */}
-          <div className="space-y-3">
-            <Button onClick={handleAddToCart} className="w-full" size="lg">
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Add to Cart
-            </Button>
-            <Button variant="outline" className="w-full" size="lg" onClick={handleContactSeller}>
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Contact Seller
-            </Button>
-          </div>
+          {user && product && user.id !== product.user_id && (
+            <div className="space-y-3">
+              <Button onClick={handleContactSeller} className="w-full" size="lg">
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Contact Seller
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -18,6 +18,8 @@ import UserProfile from "./pages/UserProfile";
 import Cart from "./pages/Cart";
 import PreviousPurchases from "./pages/PreviousPurchases";
 import Search from "./pages/Search";
+import Chat from "./pages/Chat";
+import Chats from "./pages/Chats";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +71,16 @@ const App = () => (
               <Route path="/search" element={
                 <ProtectedRoute>
                   <Search />
+                </ProtectedRoute>
+              } />
+              <Route path="/chats" element={
+                <ProtectedRoute>
+                  <Chats />
+                </ProtectedRoute>
+              } />
+              <Route path="/chat/:id" element={
+                <ProtectedRoute>
+                  <Chat />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
